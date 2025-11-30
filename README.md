@@ -50,6 +50,40 @@ AI-assisted resume analysis for Applicant Tracking Systems (ATS). Candidates can
 - `app/lib/puter.ts` – Centralized Zustand store exposing `auth`, `fs`, `ai`, and `kv` helpers wrapping `window.puter`.
 - `constants/index.ts` – Seed data plus prompt template helpers for the AI response.
 
+## Authentication & Authorization
+
+The application uses **Puter.js** for authentication and authorization, providing a seamless, cloud-based auth system without requiring a separate backend.
+
+### Authentication Flow
+
+1. **Initialization**: On app load (`app/root.tsx`), the Puter.js SDK is injected via a script tag, and the Zustand store automatically checks authentication status using `checkAuthStatus()`.
+
+2. **Sign In/Out**: Users interact with the `/auth` route:
+   - **Sign In**: Calls `puter.auth.signIn()`, which opens Puter's authentication modal (supports various OAuth providers)
+   - **Sign Out**: Calls `puter.auth.signOut()` to clear the session
+   - **Auto-redirect**: After successful authentication, users are redirected to their intended destination via the `next` query parameter (e.g., `/auth?next=/resume/123`)
+
+3. **Protected Routes**: Routes are protected at the component level:
+   - **Home page** (`/`): Redirects to `/auth?next=/` if not authenticated
+   - **Resume detail** (`/resume/:id`): Redirects to `/auth?next=/resume/:id` if not authenticated
+   - Other routes check authentication status before allowing access to sensitive operations
+
+4. **State Management**: The `usePuterStore` Zustand store maintains:
+   - `auth.isAuthenticated`: Boolean flag indicating authentication status
+   - `auth.user`: Current user object with username and profile information
+   - `auth.signIn()` / `auth.signOut()`: Methods to manage authentication
+   - `auth.checkAuthStatus()`: Verifies current session validity
+   - `isLoading`: Loading state during auth operations
+
+### Data Isolation
+
+Once authenticated, all user data is automatically scoped to their Puter account:
+- **Resume uploads**: Stored in the user's Puter filesystem (`fs.upload()`)
+- **Resume metadata**: Saved in Puter KV store with keys like `resume:{uuid}`
+- **AI feedback**: Linked to the authenticated user's account via Puter's AI service
+
+This ensures complete data privacy and multi-user support without additional backend logic.
+
 ## Deployment Notes
 
 1. Build the project:
